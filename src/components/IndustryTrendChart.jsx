@@ -5,22 +5,28 @@ import 'chart.js/auto'
 function IndustryTrendChart({ data }) {
   if (!data || data.length === 0) return <p>Loading...</p>
 
-  // Group funding by industry and year
-  const industryTrends = data.reduce((acc, item) => {
-    const year = item.year // Use the 'year' field directly
-    const industry = item.industry
-    acc[industry] = acc[industry] || {}
-    acc[industry][year] = (acc[industry][year] || 0) + item.amount
+  // Extract all unique industries and years
+  const industries = [...new Set(data.map((item) => item.industry))]
+  const years = [...new Set(data.map((item) => item.year))].sort((a, b) => a - b)
+
+  // Initialize industry trends with all industries and years
+  const industryTrends = industries.reduce((acc, industry) => {
+    acc[industry] = years.reduce((yearAcc, year) => {
+      yearAcc[year] = 0
+      return yearAcc
+    }, {})
     return acc
   }, {})
 
-  // Extract unique years and sort them
-  const years = [...new Set(data.map((item) => item.year))].sort((a, b) => a - b)
+  // Populate industry trends with actual funding data
+  data.forEach((item) => {
+    industryTrends[item.industry][item.year] += item.amount
+  })
 
   // Prepare datasets for the line chart
-  const datasets = Object.keys(industryTrends).map((industry) => ({
+  const datasets = industries.map((industry) => ({
     label: industry,
-    data: years.map((year) => industryTrends[industry][year] || 0),
+    data: years.map((year) => industryTrends[industry][year]),
     fill: false,
     borderColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // Random color for each industry
     tension: 0.4, // Smooth lines
